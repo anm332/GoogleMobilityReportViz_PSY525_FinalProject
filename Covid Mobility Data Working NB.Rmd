@@ -1,0 +1,415 @@
+---
+title: "PSY 525 Final Project"
+author: "Amanda Moeller"
+date: "4/19/2020"
+output: html_document
+---
+
+# This document contains a reproducible workflow for visualizing changes in mobility across the globe during the time of Covid-19.
+
+## The data:
+"https://imgur.com/a/2u2eiAj"
+
+
+```{r, include=FALSE}
+library(tidyr)
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(gganimate)
+library(gifski) # this helps gganimate to turn png into videos/gifs
+library(png) # see above note
+library(readr)
+library(scales) # package for scale formatting
+library(kableExtra) # this and magick help format table
+library(magick)
+```
+
+![](https://imgur.com/a/2u2eiAj)
+
+```{r, echo=FALSE, warning=FALSE, include=FALSE}
+GoogleCovidCategories <- c("Retail and Recreation",
+                           "Mobility trends for places like restaurants, cafes, shopping centers, theme parks, museums, libraries, and movie theaters.", 
+                           "Grocery and Pharmacy", 
+                           "Mobility trends for places like grocery markets, food warehouses, farmers markets, specialty food shops, drug stores, and pharmacies.", 
+                           "Parks", 
+                           "Mobility trends for places like local parks, national parks, public beaches, marinas, dog parks, plazas, and public gardens.", 
+                           "Transit Stations", 
+                           "Mobility trends for places like public transport hubs such as subway, bus, and train stations.", 
+                           "Workplaces", 
+                           "Mobility trends for places of work.", 
+                           "Residential", 
+                           "Mobility trends for places of residence")
+
+Categories_df <- data.frame(matrix(GoogleCovidCategories, 
+                        ncol=2, 
+                        byrow=TRUE), 
+stringsAsFactors=TRUE)
+Categories_df
+```
+
+```{r, include=FALSE}
+GoogleCovidCategories <- data.frame(
+  Category=c("Retail and Recreation",
+                            "Grocery and Pharmacy",
+                            "Parks",
+                            "Transit Stations",
+                            "Workplaces",
+                            "Residential"),
+  Category_Description =c(
+                           "Mobility trends for places like restaurants, cafes, shopping centers, theme parks, museums, libraries, and movie theaters.", 
+                         "Mobility trends for places like grocery markets, food warehouses, farmers markets, specialty food shops, drug stores, and pharmacies.", 
+              "Mobility trends for places like local parks, national parks, public beaches, marinas, dog parks, plazas, and public gardens.", 
+                          "Mobility trends for places like public transport hubs such as subway, bus, and train stations.",        "Mobility trends for places of work.", "Mobility trends for places of residence"))
+  
+  print(GoogleCovidCategories)
+kable(head(GoogleCovidCategories[, 1:2]), "pandoc")
+```
+
+
+## The code used to generate plots for the percent change in mobility in Pennsylvania, USA is below.
+
+#### Instructions for generating these plots for any U.S. state or specific county are also included. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Step 1: Load packages
+```{r, warning=FALSE}
+library(tidyr)
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(gganimate)
+library(gifski) # this helps gganimate to turn png into videos/gifs
+library(png) # see above note
+library(readr)
+library(scales) # package for scale formatting
+```
+
+
+### Step 2: Load the Community Mobility Covid-19 dataset    
+```{r, echo=FALSE}
+# Data is located here: https://www.google.com/covid19/mobility/
+Global_Mobility_Report <- read.csv("https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv", head=TRUE)
+head(Global_Mobility_Report) %>% as_tibble()
+```
+
+### Step 3: Here, I create a subset of the Global Report to include only location data from Pennsylvania.
+
+#### To obtain how mobility to various places has changed within different states across the USA, simply replace the following:
+
+#### -- "sub_region_1" == 'Pennsylvania' with the name of another state 
+#### AND/OR
+#### -- "sub_region_2" == 'COUNTY NAME' if you want county-level data only
+```{r}
+# Create a new data frame with only Pennsylvania mobility data
+PA_community_mobility <- subset(Global_Mobility_Report, 
+                                sub_region_1 == 'Pennsylvania', 
+                                select = c("sub_region_1", 
+                                           "sub_region_2", 
+                                           "date",
+                                    "retail_and_recreation_percent_change_from_baseline",
+                                           "grocery_and_pharmacy_percent_change_from_baseline",
+                                           "parks_percent_change_from_baseline",
+                                           "transit_stations_percent_change_from_baseline",
+                                           "workplaces_percent_change_from_baseline",
+                                           "residential_percent_change_from_baseline"))
+
+# Change date column to as.date so R can read it as a date
+PA_community_mobility$date <- as.Date(PA_community_mobility$date)
+```
+
+## Step 4: Plot out the mobility change for each place category between the time period of February 15, 2020 to April 10, 2020:
+
+
+### Retail and recreation change in Pennsylvania from 02/15/2020 to 04/10/2020
+STATIC PLOT
+```{r, echo=TRUE, warning=FALSE}
+# Static retail and recreation mobility plot:
+staticPlot_RetailRecreation_mobilitychange <- 
+  ggplot(data=PA_community_mobility)+
+  geom_point(mapping=aes(x=date, 
+                         y=retail_and_recreation_percent_change_from_baseline, 
+                         color=retail_and_recreation_percent_change_from_baseline))+
+  theme_minimal() +
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e")  +
+  theme_linedraw() 
+# Display the plot:
+print(staticPlot_RetailRecreation_mobilitychange) + labs(x="Date", y="Retail and Recreation Mobility Change in PA") 
+```
+
+
+### Retail and recreation mobility change in Pennsylvania from 02/15/2020 to 04/10/2020 (Animated plot)
+ANIMATED PLOT
+```{r, echo=TRUE, warning=FALSE}
+# Animated retail and recreation mobility plot:
+animPlot_RetailRecreation_mobilitychange <- 
+  ggplot(PA_community_mobility,
+         aes(x=date, 
+             y=retail_and_recreation_percent_change_from_baseline)) +
+  geom_point(aes(color=retail_and_recreation_percent_change_from_baseline))
+
+animPlot_RetailRecreation_mobilitychange <- 
+  animPlot_RetailRecreation_mobilitychange+
+  transition_time(PA_community_mobility$date) +
+  shadow_mark() + 
+  scale_x_date(labels=date_format("%m/%d")) +
+  xlab("Date") + 
+  ylab("Retail and Recreation Mobility Change in PA")+
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e")+
+  theme(legend.position="none") +
+  theme_linedraw() +
+  theme(legend.position="none")
+
+# Display the plot:
+animated_RetailRecreation_plot <- animate(animPlot_RetailRecreation_mobilitychange, width=700, height=500)
+animated_RetailRecreation_plot
+```
+
+## Grocery and Pharmacy 
+### Mobility change in Pennsylvania 
+Static plot
+```{r, warning=FALSE}
+# Static grocery and pharmacy mobility plot:
+staticPlot_GroceryPharmacy_mobilitychange <- 
+  ggplot(data=PA_community_mobility)+
+  geom_point(mapping=aes(x=date, 
+                         y=grocery_and_pharmacy_percent_change_from_baseline, 
+                         color=grocery_and_pharmacy_percent_change_from_baseline))+
+  theme_minimal() +
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e")  +
+  theme_linedraw() 
+# Display the plot:
+print(staticPlot_GroceryPharmacy_mobilitychange) + labs(x="Date", y="Grocery and Pharmacy Mobility Change in PA") 
+```
+ANIMATED PLOT
+```{r, warning=FALSE}
+# Animated grocery and pharmacy mobility plot:
+animPlot_GroceryPharmacy_mobilitychange <- 
+  ggplot(PA_community_mobility,
+         aes(x=date, 
+             y=grocery_and_pharmacy_percent_change_from_baseline)) +
+  geom_point(aes(color=grocery_and_pharmacy_percent_change_from_baseline))
+
+animPlot_GroceryPharmacy_mobilitychange <- 
+  animPlot_GroceryPharmacy_mobilitychange+
+  transition_time(PA_community_mobility$date) +
+  shadow_mark() + 
+  scale_x_date(labels=date_format("%m/%d")) +
+  xlab("Date") + 
+  ylab("Grocery and Pharmacy Mobility Change in PA")+
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e")+
+  theme(legend.position="none") +
+  theme_linedraw() +
+  theme(legend.position="none")
+
+# Display the plot:
+animated_GroceryPharmacy_plot <- animate(animPlot_GroceryPharmacy_mobilitychange, width=700, height=500)
+animated_GroceryPharmacy_plot
+```
+
+## Parks 
+### Mobility change in Pennsylvania
+Static plot
+```{r, warning=FALSE}
+# Static parks mobility plot:
+staticPlot_Parks_mobilitychange <- 
+  ggplot(data=PA_community_mobility)+
+  geom_point(mapping=aes(x=date, 
+                         y=parks_percent_change_from_baseline, 
+                         color=parks_percent_change_from_baseline))+
+  theme_minimal() +
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e") +
+  theme_linedraw() 
+  
+# Display the plot:
+print(staticPlot_Parks_mobilitychange) + labs(x="Date", y="Parks Mobility Change in PA") 
+
+```
+
+Animated plot
+```{r, warning=FALSE}
+# Animated parks mobility plot:
+animPlot_Parks_mobilitychange <- 
+  ggplot(PA_community_mobility,
+         aes(x=date, 
+             y=parks_percent_change_from_baseline)) +
+  geom_point(aes(color=parks_percent_change_from_baseline))
+
+animPlot_Parks_mobilitychange <- 
+  animPlot_Parks_mobilitychange+
+  transition_time(PA_community_mobility$date) +
+  shadow_mark() + 
+  scale_x_date(labels=date_format("%m/%d")) +
+  xlab("Date") + 
+  ylab("Parks Mobility Change in PA")+
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e")+
+  theme(legend.position="none")
+
+# Display the plot:
+animated_Parks_plot <- animate(animPlot_Parks_mobilitychange, width=700, height=500)
+animated_Parks_plot
+```
+
+
+## Transit Stations 
+### Mobility change in Pennsylvania 
+Static plot
+```{r, warning=FALSE}
+# Static transit stations mobility plot:
+staticPlot_TransitStations_mobilitychange <- 
+  ggplot(data=PA_community_mobility)+
+  geom_point(mapping=aes(x=date, 
+                         y=transit_stations_percent_change_from_baseline, 
+                         color=transit_stations_percent_change_from_baseline))+
+  theme_minimal() +
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e")  +
+  theme_linedraw() 
+# Display the plot:
+print(staticPlot_TransitStations_mobilitychange) + labs(x="Date", y="Transit Stations Mobility Change in PA") 
+
+```
+
+Animated plot
+```{r, warning=FALSE}
+# Animated transit stations mobility plot:
+animPlot_TransitStations_mobilitychange <- 
+  ggplot(PA_community_mobility,
+         aes(x=date, 
+             y=transit_stations_percent_change_from_baseline)) +
+  geom_point(aes(color=transit_stations_percent_change_from_baseline))
+
+animPlot_TransitStations_mobilitychange <- 
+  animPlot_TransitStations_mobilitychange+
+  transition_time(PA_community_mobility$date) +
+  shadow_mark() + 
+  scale_x_date(labels=date_format("%m/%d")) +
+  xlab("Date") + 
+  ylab("Transit Stations Mobility Change in PA")+
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e")+
+  theme(legend.position="none") +
+  theme_linedraw() 
+
+# Display the plot:
+animated_TransitStations_plot <- animate(animPlot_TransitStations_mobilitychange, 
+                                         width=700, 
+                                         height=500)
+animated_TransitStations_plot
+```
+
+
+## Workplaces 
+### Mobility change in Pennsylvania from 02/15/2020 to 04/10/2020 
+Static plot
+```{r, warning=FALSE}
+# Static workplace mobility plot:
+staticPlot_Workplaces_mobilitychange <- 
+  ggplot(data=PA_community_mobility)+
+  geom_point(mapping=aes(x=date, 
+                         y=workplaces_percent_change_from_baseline, 
+                         group=workplaces_percent_change_from_baseline, 
+                         color=workplaces_percent_change_from_baseline))+
+  theme_minimal() +
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e") +
+  theme_linedraw() 
+# Display the plot:
+print(staticPlot_Workplaces_mobilitychange) + labs(x="Date", y="Workplaces Mobility Change in PA") 
+
+```
+
+Animated plot
+```{r, warning=FALSE}
+# Animated workplace mobility plot:
+animPlot_Workplaces_mobilitychange <- 
+  ggplot(PA_community_mobility,
+         aes(x=date, 
+             y=workplaces_percent_change_from_baseline)) +
+  geom_point(aes(color=workplaces_percent_change_from_baseline))
+
+animPlot_Workplaces_mobilitychange <- 
+  animPlot_Workplaces_mobilitychange+
+  transition_time(PA_community_mobility$date) +
+  shadow_mark() + 
+  scale_x_date(labels=date_format("%m/%d")) +
+  xlab("Date") + 
+  ylab("Workplace Mobility Change in PA")+
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e")+
+  theme(legend.position="none")+
+  theme_linedraw() 
+
+# Display the plot:
+animated_Workplaces_plot <- animate(animPlot_Workplaces_mobilitychange, width=700, height=500)
+animated_Workplaces_plot
+```
+
+
+## Residential Area 
+### Mobility change in Pennsylvania from 02/15/2020 to 04/10/2020
+Static plot
+```{r, warning=FALSE}
+# Residential area mobility plot:
+staticPlot_Residential_mobilitychange <- 
+  ggplot(data=PA_community_mobility)+
+  geom_point(mapping=aes(x=date, 
+                         y=residential_percent_change_from_baseline, 
+                         color=residential_percent_change_from_baseline))+
+  theme_minimal() +
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e")  +
+  theme_linedraw() 
+
+# Display the plot:
+print(staticPlot_Residential_mobilitychange) + labs(x="Date", y="Residential Area Mobility Change in PA")
+```
+
+Residential Area mobility change in Pennsylvania from 02/15/2020 to 04/10/2020 (Animated plot)
+```{r, warning=FALSE}
+# Animated residential mobility plot:
+animPlot_Residential_mobilitychange <- 
+  ggplot(PA_community_mobility,
+         aes(x=date, 
+             y=residential_percent_change_from_baseline)) +
+  geom_point(aes(color=residential_percent_change_from_baseline))
+
+animPlot_Residential_mobilitychange <- 
+  animPlot_Residential_mobilitychange+
+  transition_time(PA_community_mobility$date) +
+  shadow_mark() + 
+  scale_x_date(labels=date_format("%m/%d")) +
+  xlab("Date") + 
+  ylab("Residential Area Mobility Change in PA")+
+  scale_color_gradient(low = "#0091ff", 
+                       high = "#f0650e")+
+  theme(legend.position="none") +
+  theme_linedraw() 
+
+# Display the plot:
+animated_Residential_plot <- animate(animPlot_Residential_mobilitychange, 
+                                         width=700, 
+                                         height=500)
+animated_Residential_plot
+```
+
+
+
+
+
+
+
+
+
