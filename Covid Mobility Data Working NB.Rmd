@@ -8,7 +8,7 @@ output: html_document
 # This document contains a reproducible workflow for visualizing changes in mobility across the globe during the time of Covid-19.
 
 ## The data:
-"https://imgur.com/a/2u2eiAj"
+https://www.google.com/covid19/mobility/
 
 
 ```{r, include=FALSE}
@@ -27,7 +27,6 @@ library(kableExtra) # this and magick help format table
 library(magick)
 ```
 
-![](https://imgur.com/a/2u2eiAj)
 
 ```{r, echo=FALSE, warning=FALSE, include=FALSE}
 GoogleCovidCategories <- c("Retail and Recreation",
@@ -50,7 +49,7 @@ stringsAsFactors=TRUE)
 Categories_df
 ```
 
-```{r, include=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 GoogleCovidCategories <- data.frame(
   Category=c("Retail and Recreation",
                             "Grocery and Pharmacy",
@@ -93,7 +92,7 @@ library(scales) # package for scale formatting
 
 
 ### Step 2: Load the Community Mobility Covid-19 dataset    
-```{r, echo=FALSE}
+```{r, warning=FALSE}
 # Data is located here: https://www.google.com/covid19/mobility/
 Global_Mobility_Report <- read.csv("https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv", head=TRUE)
 head(Global_Mobility_Report) %>% as_tibble()
