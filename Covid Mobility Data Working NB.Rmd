@@ -5,6 +5,19 @@ date: "4/19/2020"
 output: html_document
 ---
 
+<!-- 1. I suggest adding labels to your code chunks. -->
+<!-- That way it is easier to monitor the progress of your document as it knits. -->
+
+<!-- 2. I'd like to have seen a description of the dataset, your motivations for visualizing it, and the goals of the visualizations. -->
+<!-- This is by no means a definitive recommendation, but I have taken to starting all of my R Markdown HTML reports with a "Purpose" and "Background" or "Set-up" section. -->
+<!-- Also, because it is so easy, I like to provide commentary about what I am doing between each chunk. -->
+<!-- If I am visualizing data, I like to comment on what I am seeing. -->
+
+<!-- 3. This may be just a stylistic preference, but I prefer shorter headers and longer text in the paragraphs below the headers. -->
+<!-- That allows you to generate a table of contents automatically using the `toc: true` parameter in your YAML header. -->
+
+<!-- 4. I'm really happy with the progress you've made this term. Keep at it! -->
+
 # This document contains a reproducible workflow for visualizing changes in mobility across the globe during the time of Covid-19.
 
 ## The data:
